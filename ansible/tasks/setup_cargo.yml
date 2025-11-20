@@ -1,0 +1,108 @@
+---
+# Install Rust toolchain and cargo packages into a repository-local cargo root (idempotent)
+- name: Ensure repo-local cargo dirs exist
+  file:
+    path: "{{ dotfiles_cargo }}/bin"
+    state: directory
+    mode: '0755'
+
+- name: Check for cargo in repo-local cargo bin
+  stat:
+    path: "{{ dotfiles_cargo }}/bin/cargo"
+  register: cargo_local_stat
+  changed_when: false
+
+- name: Download rustup installer script
+  get_url:
+    url: "https://sh.rustup.rs"
+    dest: "{{ dotfiles_tmp }}/rustup-init.sh"
+    mode: '0755'
+  when: not cargo_local_stat.stat.exists
+
+- name: Run rustup installer into repo-local cargo (non-interactive)
+  command: "{{ dotfiles_tmp }}/rustup-init.sh -y --no-modify-path --default-toolchain stable"
+  args:
+    chdir: "{{ dotfiles_tmp }}"
+    creates: "{{ dotfiles_cargo }}/bin/cargo"
+  environment:
+    RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
+    CARGO_HOME: "{{ dotfiles_cargo }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+  when: not cargo_local_stat.stat.exists
+
+- name: Ensure repo-local cargo bin is executable
+  file:
+    path: "{{ dotfiles_cargo }}/bin"
+    mode: '0755'
+    state: directory
+
+- name: Stat rustup binary
+  stat:
+    path: "{{ dotfiles_cargo }}/bin/rustup"
+  register: rustup_stat
+  changed_when: false
+
+- name: Check rustup active toolchain
+  command: "{{ dotfiles_cargo }}/bin/rustup show active-toolchain"
+  register: rustup_active
+  failed_when: false
+  changed_when: false
+  when: rustup_stat.stat.exists
+
+- name: Install stable toolchain if missing
+  command: "{{ dotfiles_cargo }}/bin/rustup toolchain install stable"
+  environment:
+    RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
+    CARGO_HOME: "{{ dotfiles_cargo }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+  when:
+    - rustup_stat.stat.exists
+    - "'stable' not in (rustup_active.stdout | default(''))"
+
+- name: Set rustup default to stable
+  command: "{{ dotfiles_cargo }}/bin/rustup default stable"
+  environment:
+    RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
+    CARGO_HOME: "{{ dotfiles_cargo }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+  when:
+    - rustup_stat.stat.exists
+    - "'stable' not in (rustup_active.stdout | default(''))"
+
+- name: Load cargo requirements vars
+  include_vars:
+    file: "{{ dotfiles_ansible }}/vars/cargo_requirements.yml"
+
+# Install crates that provide binaries via `cargo install`
+- name: Install cargo crates into repo-local cargo root
+  command: >
+    "{{ dotfiles_cargo }}/bin/cargo" install --root "{{ dotfiles_cargo }}" "{{ item.name | default(item) }}"
+  args:
+    creates: "{{ dotfiles_cargo }}/bin/{{ item.binary | default(item) }}"
+  environment:
+    RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
+    CARGO_HOME: "{{ dotfiles_cargo }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+  loop: "{{ dotfiles_cargo_crates | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default(item) }}"
+
+# Handle library-style crates that need to be installed from source (git) or handled specially.
+# Each entry in dotfiles_cargo_libraries should provide at least `name` and `git` (repo URL);
+# `binary` may be provided to indicate the produced binary name.
+- name: Install cargo libraries (from git) into repo-local cargo root
+  when: (dotfiles_cargo_libraries is defined) and (dotfiles_cargo_libraries | length > 0)
+  command: >
+    "{{ dotfiles_cargo }}/bin/cargo" install --root "{{ dotfiles_cargo }}"
+    --git "{{ item.git }}"
+    {% if item.bin is defined %} --bin "{{ item.bin }}" {% endif %}
+    "{{ item.name | default('') }}"
+  args:
+    creates: "{{ dotfiles_cargo }}/bin/{{ item.binary | default(item.bin | default(item.name)) }}"
+  environment:
+    RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
+    CARGO_HOME: "{{ dotfiles_cargo }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+  loop: "{{ dotfiles_cargo_libraries }}"
+  loop_control:
+    label: "{{ item.name | default(item) }}"

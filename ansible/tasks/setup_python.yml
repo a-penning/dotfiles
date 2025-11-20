@@ -1,0 +1,31 @@
+---
+# Create a Python virtual environment for this repository (idempotent)
+- name: Check for python3
+  command: python3 --version
+  register: python3_check
+  changed_when: false
+  failed_when: python3_check.rc != 0
+
+- name: Create virtual environment if missing
+  command: python3 -m venv "{{ dotfiles_venv }}"
+  args:
+    creates: "{{ dotfiles_venv }}/bin/activate"
+
+- name: Ensure virtualenv activate script is executable
+  file:
+    path: "{{ dotfiles_venv }}/bin/activate"
+    mode: '0755'
+    state: file
+
+- name: Load python requirements vars
+  include_vars:
+    file: "{{ dotfiles_ansible }}/vars/python_requirements.yml"
+
+- name: Install pip packages into virtualenv
+  pip:
+    virtualenv: "{{ dotfiles_venv }}"
+    name: "{{ item }}"
+    state: present
+  loop: "{{ dotfiles_python_requirements }}"
+  loop_control:
+    label: "{{ item }}"

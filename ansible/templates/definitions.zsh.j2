@@ -1,0 +1,60 @@
+# definitions.zsh
+# {{ ansible_managed }}
+# Common definitions sourced by env.zsh
+
+# Set default editor: prefer nano if available, otherwise fall back to vi.
+# Do not respect any pre-existing $EDITOR; use full paths from `command -v`.
+if command -v nano >/dev/null 2>&1; then
+  export EDITOR="$(command -v nano)"
+elif command -v pico >/dev/null 2>&1; then
+  export EDITOR="$(command -v pico)"
+elif command -v vi >/dev/null 2>&1; then
+  export EDITOR="$(command -v vi)"
+else
+  export EDITOR="/usr/bin/vi"
+fi
+
+# zsh history configuration
+# Persist history to a dedicated file under dotfiles
+# Ensure the dotfiles shell directory exists so history can be written there
+if [ -n "{{ dotfiles_shell }}" ] && [ ! -d "{{ dotfiles_shell }}" ]; then
+  mkdir -p "{{ dotfiles_shell }}"
+fi
+export HISTFILE="{{ dotfiles_shell }}/.zsh_history"
+# Limit in-memory and saved history (templated)
+export HISTSIZE={{ dotfiles_history_size }}
+export SAVEHIST={{ dotfiles_history_size }}
+# Save commands to history immediately (append as they are entered)
+setopt INC_APPEND_HISTORY
+# Ensure append behavior (complements INC_APPEND_HISTORY on some setups)
+setopt APPEND_HISTORY
+# Record timestamp and duration for each history entry for richer history lines
+setopt EXTENDED_HISTORY
+# When expiring duplicate entries prefer removing older ones first
+setopt HIST_EXPIRE_DUPS_FIRST
+# Ignore duplicate commands when adding new history entries
+setopt HIST_IGNORE_DUPS
+# Remove all previous duplicate entries of a command to keep history compact
+setopt HIST_IGNORE_ALL_DUPS
+# Avoid showing duplicates when searching history
+setopt HIST_FIND_NO_DUPS
+# Prevent saving duplicate entries when writing history to file
+setopt HIST_SAVE_NO_DUPS
+# Skip entries that start with a space (avoid accidental secrets)
+setopt HIST_IGNORE_SPACE
+# Collapse repeated spaces to reduce near-duplicates
+setopt HIST_REDUCE_BLANKS
+
+# Cargo environment variables
+export RUSTUP_HOME="{{ dotfiles_cargo }}/rustup"
+export CARGO_HOME="{{ dotfiles_cargo }}"
+export PATH="$PATH:$CARGO_HOME/bin"
+
+# Add local scripts to PATH
+if [ -d "{{ dotfiles_root }}/scripts/bash" ]; then
+  export PATH="$PATH:{{ dotfiles_root }}/scripts/bash"
+fi
+
+if [ -d "{{ dotfiles_root }}/scripts/python" ]; then
+  export PATH="$PATH:{{ dotfiles_root }}/scripts/python"
+fi

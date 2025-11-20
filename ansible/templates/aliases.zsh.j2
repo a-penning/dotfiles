@@ -1,0 +1,65 @@
+# aliases.zsh
+# {{ ansible_managed }}
+# Basic aliases
+
+# Shell environment aliases
+alias rc='$EDITOR ~/.zshrc'
+alias .rc='source ~/.zshrc'
+
+# Editor aliases
+alias e='$EDITOR'
+if command -v vim &> /dev/null; then
+  alias v='vim'
+elif command -v vi &> /dev/null; then
+  alias v='vi'
+else
+  alias v='echo "Error: Neither vim nor vi found" >&2; false'
+fi
+
+if command -v nano &> /dev/null; then
+  alias n='nano'
+elif command -v pico &> /dev/null; then
+  alias n='pico'
+else
+  alias n='echo "Error: Neither nano nor pico found" >&2; false'
+fi
+
+# File and directory listing aliases
+alias t='tree'
+alias l='ls -ah'
+alias ll='ls -alh'
+alias la='ls -A'
+
+# Git aliases
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+
+# Clear aliases
+alias c='clear'
+alias ct='c;t'
+alias cl='c;l;'
+alias cll='c;ll;'
+
+# Directory navigation aliases
+alias dir='readlink -f .'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# Re-run the previous command with sudo
+{% if ansible_os_family == "Darwin" %}
+alias crap='eval "sudo $(fc -ln -1)"'
+{% else %}
+alias crap='sudo $(history -p !!)'
+{% endif %}
+
+# Thefuck alias
+eval $(thefuck --alias)
+
+# Hyperfine aliases
+alias benchmark='hyperfine --warmup 3 --runs 5'
+{% if ansible_os_family == "Darwin" %}
+alias benchmark-last='hyperfine --warmup 3 --runs 5 "$(fc -ln -1)"'
+{% else %}
+alias benchmark-last='hyperfine --warmup 3 --runs 5 "$(history -p !!)"'
+{% endif %}

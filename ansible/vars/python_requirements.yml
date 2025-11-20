@@ -1,0 +1,11 @@
+---
+# Python pip packages to install into the repository virtualenv
+dotfiles_python_requirements:
+  - tree
+  - tldr
+  - speedtest-cli
+  - git+https://github.com/nvbn/thefuck.git
+  - requests
+  - pytest
+  - pytest-order
+  - pyjwt

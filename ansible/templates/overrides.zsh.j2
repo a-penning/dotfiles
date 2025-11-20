@@ -1,0 +1,132 @@
+# overrides.zsh
+# {{ ansible_managed }}
+# This file is sourced before aliases. Define overrides for binaries with preferred flags.
+
+# Colorize tree output by default, limit to 1 level deep, and list directories first
+alias tree='tree -C -l -L 1 --dirsfirst'
+
+# Prefer exa for ls when installed (interactive use)
+if command -v exa >/dev/null 2>&1; then
+  alias ls='exa --color=auto --group-directories-first'
+else
+  # ls with color support
+  {% if ansible_os_family == "Darwin" %}
+  alias ls='ls -G'
+  {% else %}
+  alias ls='ls --color=auto'
+  {% endif %}
+fi
+
+# git with colored output
+alias git='git -c color.ui=auto'
+
+# grep with color support; prefer ripgrep (rg) when available for colorized, faster searches
+if command -v rg >/dev/null 2>&1; then
+  alias grep='rg --color=auto -n'
+else
+  alias grep='grep --color=auto'
+fi
+
+# Use bat for cat when available (no paging by default)
+if command -v bat >/dev/null 2>&1; then
+  alias cat='bat --paging=never'
+fi
+
+# Use fd for interactive finding (not a drop-in for find in scripts)
+if command -v fd >/dev/null 2>&1; then
+  alias find='fd'
+fi
+
+# Use btm as a nicer interactive top replacement
+if command -v btm >/dev/null 2>&1; then
+  alias top='btm'
+fi
+
+# Use procs as a modern ps replacement
+if command -v procs >/dev/null 2>&1; then
+  alias ps='procs'
+fi
+
+# Use dust for nicer disk usage summaries
+if command -v dust >/dev/null 2>&1; then
+  alias du='dust'
+fi
+
+# Use delta as git pager/diff viewer if present
+if command -v delta >/dev/null 2>&1; then
+  export GIT_PAGER='delta'
+fi
+
+# Initialize zoxide for improved directory jumping if available
+{% raw %}
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+
+  alias cd='z'
+
+  # Ensure the zsh completion system is initialized (idempotent)
+  autoload -Uz compinit
+  compinit -u 2>/dev/null || true
+
+  # Add common site-functions paths so Homebrew/user completions are found
+  if [ -d /usr/local/share/zsh/site-functions ]; then
+    fpath=(/usr/local/share/zsh/site-functions $fpath)
+  fi
+  if [ -d /opt/homebrew/share/zsh/site-functions ]; then
+    fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
+  fi
+
+  # Allow substring matches in tab-completion (improves partial-path matching)
+  # Make matching case-insensitive and allow substring matches (so "work<tab>" matches "Workspace")
+  zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}' 'r:|=*'
+
+  # zoxide completion using zoxide's list AND filesystem paths
+  _zoxide_complete() {
+    local -a dirs
+    # First, add directories from zoxide's database
+    dirs=("${(f)$(zoxide query -ls 2>/dev/null | sed 's/^[0-9]*[[:space:]]*//')}")
+    if [ ${#dirs[@]} -gt 0 ]; then
+      compadd -a dirs
+    fi
+    # Then add filesystem path completion as fallback
+    _path_files -/
+  }
+  compdef _zoxide_complete z
+
+  # SSH host completion: parse ~/.ssh/config for Host entries and register completion
+  if [ -f "${HOME}/.ssh/config" ]; then
+    _ssh_config_hosts() {
+      local -a hosts
+      hosts=(${(f)"$(awk '/^Host /{for(i=2;i<=NF;i++) if($i!~/[*?]/) print $i}' ${HOME}/.ssh/config 2>/dev/null)"})
+      if [ ${#hosts[@]} -gt 0 ]; then
+        compadd -a hosts
+      fi
+    }
+    compdef _ssh_config_hosts ssh scp sftp
+  fi
+fi
+{% endraw %}
+
+# fzf shell integration if available
+if command -v fzf >/dev/null 2>&1; then
+  # Source fzf zsh integration (completion and keybindings) if available
+  source <(fzf --zsh) 2>/dev/null || true
+fi
+
+# If docker is not available but podman is, alias docker to podman
+if { ! command -v docker >/dev/null 2>&1; } && { command -v podman >/dev/null 2>&1; }; then
+  alias docker='podman'
+fi
+
+# If docker-compose is not available but podman supports the `compose` subcommand,
+# alias docker-compose to use `podman compose`
+if { ! command -v docker-compose >/dev/null 2>&1; } && { command -v podman >/dev/null 2>&1; } && { podman compose version >/dev/null 2>&1; }; then
+  alias docker-compose='podman compose'
+fi
+
+{% if ansible_os_family == "Darwin" %}
+# ansible fix for shell command
+alias ansible='fix-ansible && command ansible'
+# ansible fix for playbook command
+alias ansible-playbook='fix-ansible && command ansible-playbook'
+{% endif %}

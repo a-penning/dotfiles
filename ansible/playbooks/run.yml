@@ -1,0 +1,21 @@
+---
+- name: Run mode playbook
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Setup environment variables and directories
+      import_tasks: ../tasks/setup_env.yml
+
+    - name: Prepare Python virtualenv
+      import_tasks: ../tasks/setup_python.yml
+
+    - name: Prepare Cargo install
+      import_tasks: ../tasks/setup_cargo.yml
+
+    - name: Generate shell configuration files from templates
+      import_tasks: ../tasks/setup_shell.yml

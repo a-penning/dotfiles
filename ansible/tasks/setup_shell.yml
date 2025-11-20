@@ -1,0 +1,35 @@
+---
+# Generate shell configuration files from templates
+
+- name: Render shell templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: "{{ dotfiles_ansible }}/templates/env.zsh.j2", dest: "{{ dotfiles_shell }}/env.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/dotfiles.zsh.j2", dest: "{{ dotfiles_shell }}/dotfiles.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/definitions.zsh.j2", dest: "{{ dotfiles_shell }}/definitions.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/overrides.zsh.j2", dest: "{{ dotfiles_shell }}/overrides.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/aliases.zsh.j2", dest: "{{ dotfiles_shell }}/aliases.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/functions.zsh.j2", dest: "{{ dotfiles_shell }}/functions.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/prompt.zsh.j2", dest: "{{ dotfiles_shell }}/prompt.zsh" }
+    - { src: "{{ dotfiles_ansible }}/templates/plugins.zsh.j2", dest: "{{ dotfiles_shell }}/plugins.zsh" }
+
+- name: Ensure custom.zsh exists (do not overwrite user edits)
+  stat:
+    path: "{{ dotfiles_shell }}/custom.zsh"
+  register: custom_zsh_stat
+
+- name: Create custom.zsh if it does not exist
+  file:
+    path: "{{ dotfiles_shell }}/custom.zsh"
+    state: touch
+    mode: '0644'
+  when: not custom_zsh_stat.stat.exists
+
+- name: Add zsh plugins to shell
+  include_tasks: zsh_plugins.yml
+
+- name: Add fzf setup to shell
+  include_tasks: setup_fzf.yml

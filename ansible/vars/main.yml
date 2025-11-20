@@ -1,0 +1,23 @@
+---
+# Main variables for dotfiles repository
+# These are required and must not have defaults
+
+dotfiles_root: "{{ playbook_dir | dirname | dirname }}"
+dotfiles_ansible: "{{ dotfiles_root }}/ansible"
+dotfiles_venv: "{{ dotfiles_root }}/root/venv"
+dotfiles_cargo: "{{ dotfiles_root }}/root/cargo"
+dotfiles_bin: "{{ dotfiles_root }}/root/bin"
+dotfiles_lib: "{{ dotfiles_root }}/root/lib"
+dotfiles_tmp: "{{ dotfiles_root }}/root/tmp"
+dotfiles_logs: "{{ dotfiles_root }}/logs"
+dotfiles_shell: "{{ dotfiles_root }}/root/shell"
+dotfiles_shell_plugins: "{{ dotfiles_shell }}/plugins"
+
+# History size for zsh history
+dotfiles_history_size: 10000
+
+# Icons
+dotfiles_icon_separator: "💻"
+dotfiles_icon_venv: "🚀"
+dotfiles_icon_no_venv: "⚠️"
+dotfiles_icon_external_venv: "🐍"

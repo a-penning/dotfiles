@@ -1,0 +1,66 @@
+# dotfiles.zsh
+# {{ ansible_managed }}
+# Dotfiles internal and helper functions for zsh
+
+# Provide a simple reinstall helper that calls install.sh
+export dotfiles-reinstall() {
+  echo "⏳ Reinstalling dotfiles — only changed files will be reinstalled..."
+  if DOTFILES_REINSTALL=1 "$DOTFILES_ROOT/install.sh"; then
+    echo "! Reinstall complete. Please resource your shell with '.rc' or open a new terminal session."
+    return 0 2>/dev/null || exit 0
+  else
+    echo "Error: Reinstall failed. Check logs in $DOTFILES_ROOT/logs" >&2
+    return 1 2>/dev/null || exit 1
+  fi
+}
+
+# Helper to update dotfiles: cd into DOTFILES_ROOT, pull main, then run reinstall.
+export dotfiles-update() {
+  if [[ -z "${DOTFILES_ROOT:-}" ]]; then
+    echo "Error: DOTFILES_ROOT not set" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$DOTFILES_ROOT/.git" ]]; then
+    echo "Error: $DOTFILES_ROOT is not a git repository" >&2
+    return 1
+  fi
+
+  echo "⏳ Updating dotfiles ($DOTFILES_ROOT) from main branch..."
+  if (cd "$DOTFILES_ROOT" && git fetch origin main >/dev/null 2>&1 && git checkout main >/dev/null 2>&1 && git pull --ff-only origin main >/dev/null 2>&1); then
+    echo "✓ Pulled latest from main"
+  else
+    echo "Error: git update failed" >&2
+    return 1
+  fi
+
+  dotfiles-reinstall
+}
+
+# Wrap the deactivate function when external venv is activated
+__dotfiles_wrap_deactivate() {
+  # Only wrap if deactivate function exists and hasn't been wrapped
+  if typeset -f deactivate >/dev/null 2>&1 && [[ "${DOTFILES_DEACTIVATE_WRAPPED:-0}" != "1" ]]; then
+    # Save the original deactivate function
+    functions[__dotfiles_original_deactivate]="${functions[deactivate]}"
+    
+    # Create new deactivate that restores dotfiles venv
+    deactivate() {
+      # Call original deactivate
+      __dotfiles_original_deactivate
+      
+      # Clean up
+      unset -f __dotfiles_original_deactivate
+      export DOTFILES_DEACTIVATE_WRAPPED=0
+      export DOTFILES_EXTERNAL_VENV=0
+      
+      # Reactivate dotfiles venv if it exists
+      if [[ -n "${DOTFILES_VENV:-}" && -f "${DOTFILES_VENV}/bin/activate" ]]; then
+        # shellcheck disable=SC1090
+        source "${DOTFILES_VENV}/bin/activate"
+      fi
+    }
+    
+    export DOTFILES_DEACTIVATE_WRAPPED=1
+  fi
+}

@@ -1,0 +1,14 @@
+---
+# Ensure core directories for dotfiles
+- name: Ensure ephemeral root directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ dotfiles_bin }}"
+    - "{{ dotfiles_lib }}"
+    - "{{ dotfiles_tmp }}"
+    - "{{ dotfiles_logs }}"
+    - "{{ dotfiles_shell }}"
+    - "{{ dotfiles_shell_plugins }}"

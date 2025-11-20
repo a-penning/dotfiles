@@ -1,0 +1,17 @@
+---
+- name: Remove source line from ~/.zshrc
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    line: '[ -f "{{ dotfiles_root }}/run.sh" ] && source "{{ dotfiles_root }}/run.sh"'
+    state: absent
+  ignore_errors: true
+
+- name: Remove ephemeral root directory
+  file:
+    path: "{{ dotfiles_root }}/root"
+    state: absent
+
+- name: Remove virtualenv
+  file:
+    path: "{{ dotfiles_venv }}"
+    state: absent

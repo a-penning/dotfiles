@@ -1,0 +1,12 @@
+---
+- name: Clean mode playbook
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  vars_files:
+    - ../vars/main.yml
+
+  tasks:
+    - name: Execute cleanup tasks
+      import_tasks: ../tasks/cleanup.yml

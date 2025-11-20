@@ -1,0 +1,35 @@
+---
+# Cargo packages to install into repository-local cargo root
+# These are crates that provide binaries and can be installed via `cargo install <crate-name>`
+dotfiles_cargo_crates:
+  - name: ripgrep
+    binary: rg
+  - name: zoxide
+    binary: zoxide
+  - name: exa
+    binary: exa
+  - name: bat
+    binary: bat
+  - name: fd-find
+    binary: fd
+  - name: procs
+    binary: procs
+  - name: bottom
+    binary: btm
+  - name: git-delta
+    binary: delta
+  - name: hyperfine
+    binary: hyperfine
+
+# Library-style crates or projects that do not publish binaries to crates.io.
+# These will be handled separately (e.g. installed from a git repo or built differently).
+# Each entry should provide:
+#  - name: friendly name (optional)
+#  - git: repository URL (required for git installs)
+#  - bin: the binary target name to install (optional; falls back to `name`)
+#  - binary: the expected installed binary name (used for `creates`)
+dotfiles_cargo_libraries:
+  - name: du-dust
+    git: "https://github.com/bootandy/dust"
+    bin: dust
+    binary: dust

@@ -1,0 +1,174 @@
+# functions.zsh
+# {{ ansible_managed }}
+# Shell functions for zsh
+
+# change directory and list
+cdl() {
+  cd "$1" || return
+  ll
+}
+
+# quick mkcd
+mkcd() {
+  mkdir -p "$1" && cd "$1" || return
+}
+
+# re-run the previous command
+redo() {
+{% if ansible_os_family == "Darwin" %}
+  fc -e - -1
+{% else %}
+  eval $(history -p !!)
+{% endif %}
+}
+
+# Extract archives of various formats
+extract() {
+  if [ -z "$1" ]; then
+    echo "Usage: extract <archive_file>"
+    echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .txz, .tar, .zip, .gz, .bz2, .xz, .7z, .rar"
+    return 1
+  fi
+
+  if [ ! -f "$1" ]; then
+    echo "Error: File '$1' not found"
+    return 1
+  fi
+
+  # Helper function to check for utility and show install message
+  local _check_util() {
+    local cmd="$1"
+    local pkg="$2"
+    if ! command -v "$cmd" &> /dev/null; then
+      echo "Error: $cmd is required but not installed"
+{% if ansible_os_family == "Darwin" %}
+      echo "Install with: brew install $pkg"
+{% else %}
+      echo "Install with: sudo apt-get install $pkg (Debian/Ubuntu)"
+      echo "          or: sudo yum install $pkg (RHEL/Fedora)"
+{% endif %}
+      return 1
+    fi
+    return 0
+  }
+
+  local file="$1"
+  
+  case "$file" in
+    *.tar.gz|*.tgz)
+      _check_util tar tar || return 1
+      tar -xzf "$file"
+      ;;
+    *.tar.bz2|*.tbz2)
+      _check_util tar tar || return 1
+      tar -xjf "$file"
+      ;;
+    *.tar.xz|*.txz)
+      _check_util tar tar && _check_util xz xz-utils || return 1
+      tar -xJf "$file"
+      ;;
+    *.tar)
+      _check_util tar tar || return 1
+      tar -xf "$file"
+      ;;
+    *.zip)
+      _check_util unzip unzip || return 1
+      unzip "$file"
+      ;;
+    *.gz)
+      _check_util gunzip gzip || return 1
+      gunzip "$file"
+      ;;
+    *.bz2)
+      _check_util bunzip2 bzip2 || return 1
+      bunzip2 "$file"
+      ;;
+    *.xz)
+      _check_util unxz xz-utils || return 1
+      unxz "$file"
+      ;;
+    *.7z)
+      _check_util 7z p7zip-full || _check_util 7za p7zip || return 1
+      command -v 7z &> /dev/null && 7z x "$file" || 7za x "$file"
+      ;;
+    *.rar)
+      _check_util unrar unrar || return 1
+      unrar x "$file"
+      ;;
+    *)
+      echo "Error: Unsupported archive format for '$file'"
+      echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .txz, .tar, .zip, .gz, .bz2, .xz, .7z, .rar"
+      return 1
+      ;;
+  esac
+
+  [ $? -eq 0 ] && echo "✓ Successfully extracted: $file" || { echo "✗ Failed to extract: $file"; return 1; }
+}
+
+# create a temporary directory and start an interactive zsh there that uses
+# your existing zsh dotfiles. The temp directory is removed after you exit.
+mktmp() {
+  local dir _zdot status
+  dir=$(mktemp -d "${TMPDIR:-/tmp}/mktmp.XXXXXX") || { echo "mktmp: failed to create temp dir" >&2; return 1; }
+  echo "Entering temporary directory: $dir (exit the subshell to cleanup)"
+
+  (
+    cd "$dir" || return 1
+    zsh -i
+  )
+  rm -rf "$dir"
+  echo "Removed temporary directory: $dir"
+}
+
+# Ping all hosts in SSH config using Ansible
+ssh-ping() {
+    # Extract all non-wildcard hosts from SSH config
+    local hosts=$(awk '/^Host [^*]/ {print $2}' ~/.ssh/config)
+    
+    if [ -z "$hosts" ]; then
+        echo "No hosts found in ~/.ssh/config"
+        return 1
+    fi
+    
+    echo "Pinging SSH hosts with Ansible..."
+    echo
+    
+    # Loop through each host and run ansible ping
+    while IFS= read -r host; do
+        echo "→ Pinging $host"
+        ansible all -i "${host}," -m ping
+        echo
+    done <<< "$hosts"
+}
+
+{% if ansible_os_family == "Darwin" %}
+# Fix Ansible issues on macOS
+function fix-ansible {
+  # https://github.com/ansible/ansible/issues/32499
+  export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+  # https://www.whatan00b.com/posts/debugging-a-segfault-from-ansible/
+  export no_proxy="*"
+}
+{% endif %}
+
+
+# Prevent screensaver activation by keeping the system awake
+# Press Control+C to stop
+screensave() {
+  echo "Preventing screensaver activation (Press Control+C to stop)..."
+{% if ansible_os_family == "Darwin" %}
+  caffeinate -d
+{% else %}
+  if ! command -v xdotool &> /dev/null; then
+    echo "Error: xdotool is required but not installed"
+    echo "Install with: sudo apt-get install xdotool (Debian/Ubuntu)"
+    echo "          or: sudo yum install xdotool (RHEL/Fedora)"
+    return 1
+  fi
+
+  while true; do
+    xdotool key shift
+    sleep 60
+  done
+{% endif %}
+}

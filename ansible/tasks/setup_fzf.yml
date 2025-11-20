@@ -1,0 +1,60 @@
+---
+# Setup fzf binary if not present
+
+- name: Check for existing fzf in PATH
+  command: "{{ dotfiles_bin }}/fzf --version"
+  register: fzf_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Get latest fzf release metadata
+  uri:
+    url: "https://api.github.com/repos/junegunn/fzf/releases/latest"
+    return_content: yes
+  changed_when: false
+  register: fzf_release
+
+- name: Calculate fzf current and latest versions
+  set_fact:
+    fzf_current_version: "{{ (fzf_version_check.stdout | default('') | regex_findall('([0-9]+\\.[0-9]+\\.[0-9]+)') | first | default('0.0.0')) | string }}"
+    fzf_latest_version: "{{ (fzf_release.json.tag_name | default('0.0.0')) | regex_replace('^v','') | string }}"
+
+- name: Install latest fzf binary
+  when: fzf_current_version is version(fzf_latest_version, '<')
+  block:
+    - name: Determine fzf platform and architecture
+      set_fact:
+        fzf_platform: "{{ (ansible_system | default(ansible_os_family) | lower) }}"
+        fzf_arch: >-
+          {{ 'arm64' if
+            (
+              'aarch64' in (ansible_architecture | default('') | lower) or
+              'arm64' in (ansible_architecture | default('') | lower) or
+              'arm' in (ansible_architecture | default('') | lower) or
+              'aarch64' in (ansible_machine | default('') | lower) or
+              'arm64' in (ansible_machine | default('') | lower) or
+              'arm' in (ansible_machine | default('') | lower)
+            )
+            else 'amd64'
+          }}
+
+    - name: Build the list of matching fzf assets
+      set_fact:
+        fzf_matching_assets: "{{ fzf_release.json.assets | selectattr('name', 'match', fzf_regex) | list }}"
+      vars:
+        fzf_regex: "{{ '^fzf-.*-' ~ fzf_platform ~ '_' ~ fzf_arch ~ '\\.tar\\.gz$' }}"
+
+    - name: Download fzf archive to temp
+      when: fzf_matching_assets | length > 0
+      get_url:
+        url: "{{ fzf_matching_assets | map(attribute='browser_download_url') | list | first }}"
+        dest: "{{ dotfiles_tmp }}/fzf-{{ fzf_latest_version }}.tar.gz"
+        mode: '0644'
+
+    - name: Extract fzf archive to dotfiles bin
+      command: tar -xzf "{{ dotfiles_tmp }}/fzf-{{ fzf_latest_version }}.tar.gz" -C "{{ dotfiles_bin }}"
+
+    - name: Ensure fzf binary is executable
+      file:
+        path: "{{ dotfiles_bin }}/fzf"
+        mode: '0755'

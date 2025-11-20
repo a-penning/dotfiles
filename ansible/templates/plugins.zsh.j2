@@ -1,0 +1,16 @@
+# plugins.zsh
+# {{ ansible_managed }}
+# Load optional zsh plugins installed under the dotfiles shell plugins directory
+
+# zsh-autosuggestions provides inline history suggestions as you type.
+# zsh-syntax-highlighting highlights valid/invalid commands while typing (must be sourced last).
+if [ -f "{{ dotfiles_shell }}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
+  # shellcheck disable=SC1090
+  source "{{ dotfiles_shell }}/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+
+if [ -f "{{ dotfiles_shell }}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
+  # zsh-syntax-highlighting should be sourced last so it can see the final prompt/keys
+  # shellcheck disable=SC1090
+  source "{{ dotfiles_shell }}/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi

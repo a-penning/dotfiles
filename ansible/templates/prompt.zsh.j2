@@ -1,0 +1,76 @@
+# prompt.zsh
+# {{ ansible_managed }}
+# Git-aware prompt: shows user@path with optional colored git branch and venv icon.
+# - If inside a git repo: "andrew {{ dotfiles_icon_separator }} /path (branch) [{{ dotfiles_icon_no_venv }}|{{ dotfiles_icon_venv }}|{{ dotfiles_icon_external_venv }}]"
+# - Lightweight: avoid heavy git operations during prompt rendering.
+
+# Allow command substitution in PS1
+setopt PROMPT_SUBST
+
+# Git branch updater: stores a lightweight, pre-coloured branch string in DOTFILES_GIT_BRANCH.
+# This avoids relying on PROMPT_SUBST at display time.
+__dotfiles_update_git_branch() {
+  DOTFILES_GIT_BRANCH=''
+  if [ -d .git ] || git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+    [ -z "$branch" ] && return 0
+    if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+      DOTFILES_GIT_BRANCH="%F{green}($branch)%f "
+    else
+      DOTFILES_GIT_BRANCH="%F{yellow}($branch)%f "
+    fi
+  fi
+}
+ 
+# Compute a stable string for the venv icon and store it in DOTFILES_VENV_ICON.
+# Use a variable updated by precmd instead of command substitution in PROMPT itself.
+__dotfiles_update_venv_icon() {
+  if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+    DOTFILES_VENV_ICON='{{ dotfiles_icon_no_venv }} '
+  elif [[ -n "${DOTFILES_VENV:-}" && "${VIRTUAL_ENV}" = "${DOTFILES_VENV}" ]]; then
+    DOTFILES_VENV_ICON='{{ dotfiles_icon_venv }}'
+  else
+    DOTFILES_VENV_ICON='{{ dotfiles_icon_external_venv }}'
+  fi
+}
+ 
+# Precmd hook to manage venv state transitions and update prompt-related variables.
+__dotfiles_venv_precmd() {
+  # Manage external venv wrapping
+  if [[ -n "${VIRTUAL_ENV:-}" && -n "${DOTFILES_VENV:-}" && "${VIRTUAL_ENV}" != "${DOTFILES_VENV}" ]]; then
+    if [[ "${DOTFILES_EXTERNAL_VENV:-0}" != "1" ]]; then
+      export DOTFILES_EXTERNAL_VENV=1
+      if typeset -f __dotfiles_wrap_deactivate >/dev/null 2>&1; then
+        __dotfiles_wrap_deactivate
+      fi
+    fi
+  else
+    if [[ "${DOTFILES_EXTERNAL_VENV:-0}" == "1" ]]; then
+      export DOTFILES_EXTERNAL_VENV=0
+      if [[ -z "${VIRTUAL_ENV:-}" && -n "${DOTFILES_VENV}" ]]; then
+        if [[ -f "${DOTFILES_VENV}/bin/activate" ]]; then
+          # shellcheck disable=SC1090
+          source "${DOTFILES_VENV}/bin/activate" 2>/dev/null || true
+        fi
+      fi
+    fi
+  fi
+ 
+  # Update git branch and venv icon variables for use in PROMPT (avoids PROMPT_SUBST issues).
+  __dotfiles_update_git_branch >/dev/null 2>&1 || true
+  __dotfiles_update_venv_icon >/dev/null 2>&1 || true
+ 
+  # Force a prompt redraw when possible so other precmds don't permanently overwrite our icon.
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    if typeset -f zle >/dev/null 2>&1; then
+      zle reset-prompt 2>/dev/null || true
+    fi
+  fi
+}
+ 
+# Register precmd hook and ensure it runs last by removing any existing occurrence then appending.
+precmd_functions=( ${(@)precmd_functions:#__dotfiles_venv_precmd} )
+precmd_functions+=(__dotfiles_venv_precmd)
+ 
+# Export PROMPT using the stable variables set by precmd. This avoids dependence on PROMPT_SUBST.
+export PROMPT='%F{blue}%n%f {{ dotfiles_icon_separator }} %~ ${DOTFILES_GIT_BRANCH}${DOTFILES_VENV_ICON} '
