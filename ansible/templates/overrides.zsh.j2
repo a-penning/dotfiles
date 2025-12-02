@@ -2,6 +2,9 @@
 # {{ ansible_managed }}
 # This file is sourced before aliases. Define overrides for binaries with preferred flags.
 
+# Use 'type -a' instead of 'which' to find all instances of a command in PATH
+alias which='type -a'
+
 # Colorize tree output by default, limit to 1 level deep, and list directories first
 alias tree='tree -C -l -L 1 --dirsfirst'
 
