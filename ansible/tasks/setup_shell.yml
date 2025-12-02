@@ -33,3 +33,6 @@
 
 - name: Add fzf setup to shell
   include_tasks: setup_fzf.yml
+
+- name: Add tree setup to shell
+  include_tasks: setup_tree.yml

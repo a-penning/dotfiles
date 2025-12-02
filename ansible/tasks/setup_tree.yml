@@ -1,0 +1,143 @@
+---
+# Setup tree utility by building latest release from GitHub
+
+- name: Check for existing tree in PATH
+  command: "{{ dotfiles_bin }}/tree --version"
+  register: tree_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Get all tree tags
+  uri:
+    url: "https://api.github.com/repos/Old-Man-Programmer/tree/tags"
+    return_content: yes
+  changed_when: false
+  register: tree_tags
+
+- name: Find latest tree tag by commit date
+  uri:
+    url: "{{ tree_tags.json[0].commit.url }}"
+    return_content: yes
+  changed_when: false
+  register: tree_latest_commit
+  when: tree_tags.json | length > 0
+
+- name: Calculate tree current and latest versions
+  set_fact:
+    tree_current_version: "{{ (tree_version_check.stdout | default('') | regex_findall('([0-9]+\\.[0-9]+\\.[0-9]+)') | first | default('0.0.0')) | string }}"
+    tree_latest_version: "{{ (tree_tags.json[0].name | default('0.0.0')) | string }}"
+    tree_tarball_url: "{{ tree_tags.json[0].tarball_url | default('') }}"
+
+- name: Build and install latest tree binary
+  when: tree_current_version is version(tree_latest_version, '<')
+  block:
+    - name: Ensure build dependencies (Debian/Ubuntu)
+      when: ansible_os_family == 'Debian'
+      package:
+        name:
+          - build-essential
+          - gcc
+          - make
+        state: present
+      become: true
+
+    - name: Ensure build dependencies (RedHat)
+      when: ansible_os_family == 'RedHat'
+      package:
+        name:
+          - gcc
+          - make
+          - glibc-static
+        state: present
+      become: true
+
+    - name: Ensure build dependencies (macOS)
+      when: ansible_os_family == 'Darwin'
+      command: xcode-select --install
+      register: xcode_install
+      failed_when: false
+      changed_when: xcode_install.rc == 0
+
+    - name: Download tree source archive
+      get_url:
+        url: "{{ tree_tarball_url }}"
+        dest: "{{ dotfiles_tmp }}/tree-{{ tree_latest_version }}.tar.gz"
+        mode: '0644'
+
+    - name: Create tree build directory
+      file:
+        path: "{{ dotfiles_tmp }}/tree-build"
+        state: directory
+        mode: '0755'
+
+    - name: Extract tree source archive (macOS with BSD tar)
+      when: ansible_os_family == 'Darwin'
+      command: tar -xzf "{{ dotfiles_tmp }}/tree-{{ tree_latest_version }}.tar.gz" --strip-components=1 -C "{{ dotfiles_tmp }}/tree-build"
+
+    - name: Extract tree source archive (Linux with GNU tar)
+      when: ansible_os_family != 'Darwin'
+      unarchive:
+        src: "{{ dotfiles_tmp }}/tree-{{ tree_latest_version }}.tar.gz"
+        dest: "{{ dotfiles_tmp }}/tree-build"
+        remote_src: yes
+        extra_opts:
+          - --strip-components=1
+
+    - name: Ensure destination directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ dotfiles_bin }}"
+        - "{{ dotfiles_lib }}/share/man/man1"
+
+    - name: Set macOS-specific build flags
+      when: ansible_os_family == 'Darwin'
+      set_fact:
+        tree_make_env:
+          CC: "cc"
+          CFLAGS: "-O2 -Wall -fomit-frame-pointer -no-cpp-precomp"
+          PREFIX: "{{ dotfiles_root }}/root"
+          MANDIR: "{{ dotfiles_lib }}/share/man"
+
+    - name: Set Linux/other-specific build flags
+      when: ansible_os_family != 'Darwin'
+      set_fact:
+        tree_make_env:
+          CC: "gcc"
+          CFLAGS: "-O3 -std=c11 -Wpedantic -Wall -Wextra -Wstrict-prototypes -Wshadow -Wconversion"
+          CPPFLAGS: "-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+          LDFLAGS: "-s"
+          PREFIX: "{{ dotfiles_root }}/root"
+          MANDIR: "{{ dotfiles_lib }}/share/man"
+
+    - name: Build tree binary
+      command: make
+      args:
+        chdir: "{{ dotfiles_tmp }}/tree-build"
+      environment: "{{ tree_make_env }}"
+
+    - name: Copy tree binary to dotfiles bin
+      copy:
+        src: "{{ dotfiles_tmp }}/tree-build/tree"
+        dest: "{{ dotfiles_bin }}/tree"
+        mode: '0755'
+        remote_src: yes
+
+    - name: Copy tree man page to dotfiles lib
+      copy:
+        src: "{{ dotfiles_tmp }}/tree-build/doc/tree.1"
+        dest: "{{ dotfiles_lib }}/share/man/man1/tree.1"
+        mode: '0644'
+        remote_src: yes
+
+    - name: Clean up tree build directory
+      file:
+        path: "{{ dotfiles_tmp }}/tree-build"
+        state: absent
+
+    - name: Clean up tree source archive
+      file:
+        path: "{{ dotfiles_tmp }}/tree-{{ tree_latest_version }}.tar.gz"
+        state: absent
