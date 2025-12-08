@@ -15,7 +15,7 @@ if command -v exa >/dev/null 2>&1; then
   alias ls='exa --color=auto --group-directories-first'
 else
   # ls with color support
-  {% if ansible_os_family == "Darwin" %}
+  {% if ansible_facts['os_family'] == "Darwin" %}
   alias ls='ls -G'
   {% else %}
   alias ls='ls --color=auto'
@@ -129,7 +129,7 @@ if { ! command -v docker-compose >/dev/null 2>&1; } && { command -v podman >/dev
   alias docker-compose='podman compose'
 fi
 
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
 # ansible fix for shell command
 alias ansible='fix-ansible && command ansible'
 # ansible fix for playbook command
