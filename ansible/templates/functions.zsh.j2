@@ -15,7 +15,7 @@ mkcd() {
 
 # re-run the previous command
 redo() {
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
   fc -e - -1
 {% else %}
   eval $(history -p !!)
@@ -41,7 +41,7 @@ extract() {
     local pkg="$2"
     if ! command -v "$cmd" &> /dev/null; then
       echo "Error: $cmd is required but not installed"
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
       echo "Install with: brew install $pkg"
 {% else %}
       echo "Install with: sudo apt-get install $pkg (Debian/Ubuntu)"
@@ -141,7 +141,7 @@ ssh-ping() {
     done <<< "$hosts"
 }
 
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
 # Fix Ansible issues on macOS
 function fix-ansible {
   # https://github.com/ansible/ansible/issues/32499
@@ -156,7 +156,7 @@ function fix-ansible {
 # Press Control+C to stop
 screensave() {
   echo "Preventing screensaver activation (Press Control+C to stop)..."
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
   caffeinate -d
 {% else %}
   if ! command -v xdotool &> /dev/null; then

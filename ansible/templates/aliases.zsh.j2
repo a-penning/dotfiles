@@ -47,7 +47,7 @@ alias ..='cd ..'
 alias ...='cd ../..'
 
 # Re-run the previous command with sudo
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
 alias crap='eval "sudo $(fc -ln -1)"'
 {% else %}
 alias crap='sudo $(history -p !!)'
@@ -58,7 +58,7 @@ eval $(thefuck --alias)
 
 # Hyperfine aliases
 alias benchmark='hyperfine --warmup 3 --runs 5'
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
 alias benchmark-last='hyperfine --warmup 3 --runs 5 "$(fc -ln -1)"'
 {% else %}
 alias benchmark-last='hyperfine --warmup 3 --runs 5 "$(history -p !!)"'

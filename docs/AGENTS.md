@@ -190,7 +190,7 @@ if __name__ == "__main__":
 export VARIABLE_NAME="{{ variable_name | default('default_value') }}"
 
 # Platform-specific sections
-{% if ansible_os_family == "Darwin" %}
+{% if ansible_facts['os_family'] == "Darwin" %}
 # macOS-specific configuration
 {% else %}
 # Linux-specific configuration
@@ -248,9 +248,9 @@ Definitions in vars files are preferred to setting facts in tasks. Only set fact
 ```yaml
 - name: Platform-specific task
   # Task implementation
-  when: ansible_os_family == "Darwin"  # macOS
+  when: ansible_facts['os_family'] == "Darwin"  # macOS
   # or
-  when: ansible_os_family == "Debian"  # Linux (example)
+  when: ansible_facts['os_family'] == "Debian"  # Linux (example)
 ```
 
 ### Path Management
@@ -452,7 +452,7 @@ Cache expensive operations:
 1. **Ansible not found**: Ensure `venv` is activated
 2. **Template errors**: Check Jinja2 syntax and variable availability
 3. **Path issues**: Use `{{ dotfiles_root }}` variable
-4. **Platform issues**: Check `ansible_os_family` fact
+4. **Platform issues**: Check `ansible_facts['os_family']` fact
 
 ### Debugging
 

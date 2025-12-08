@@ -32,7 +32,7 @@
   when: tree_current_version is version(tree_latest_version, '<')
   block:
     - name: Ensure build dependencies (Debian/Ubuntu)
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
       package:
         name:
           - build-essential
@@ -42,7 +42,7 @@
       become: true
 
     - name: Ensure build dependencies (RedHat)
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
       package:
         name:
           - gcc
@@ -52,7 +52,7 @@
       become: true
 
     - name: Ensure build dependencies (macOS)
-      when: ansible_os_family == 'Darwin'
+      when: ansible_facts['os_family'] == 'Darwin'
       command: xcode-select --install
       register: xcode_install
       failed_when: false
@@ -71,11 +71,11 @@
         mode: '0755'
 
     - name: Extract tree source archive (macOS with BSD tar)
-      when: ansible_os_family == 'Darwin'
+      when: ansible_facts['os_family'] == 'Darwin'
       command: tar -xzf "{{ dotfiles_tmp }}/tree-{{ tree_latest_version }}.tar.gz" --strip-components=1 -C "{{ dotfiles_tmp }}/tree-build"
 
     - name: Extract tree source archive (Linux with GNU tar)
-      when: ansible_os_family != 'Darwin'
+      when: ansible_facts['os_family'] != 'Darwin'
       unarchive:
         src: "{{ dotfiles_tmp }}/tree-{{ tree_latest_version }}.tar.gz"
         dest: "{{ dotfiles_tmp }}/tree-build"
@@ -93,7 +93,7 @@
         - "{{ dotfiles_lib }}/share/man/man1"
 
     - name: Set macOS-specific build flags
-      when: ansible_os_family == 'Darwin'
+      when: ansible_facts['os_family'] == 'Darwin'
       set_fact:
         tree_make_env:
           CC: "cc"
@@ -102,7 +102,7 @@
           MANDIR: "{{ dotfiles_lib }}/share/man"
 
     - name: Set Linux/other-specific build flags
-      when: ansible_os_family != 'Darwin'
+      when: ansible_facts['os_family'] != 'Darwin'
       set_fact:
         tree_make_env:
           CC: "gcc"
