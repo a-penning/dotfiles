@@ -1,7 +1,7 @@
 ---
 - name: Remove source line from ~/.zshrc
   lineinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env'].HOME }}/.zshrc"
     line: '[ -f "{{ dotfiles_root }}/run.sh" ] && source "{{ dotfiles_root }}/run.sh"'
     state: absent
   ignore_errors: true
