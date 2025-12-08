@@ -27,7 +27,7 @@
   environment:
     RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
     CARGO_HOME: "{{ dotfiles_cargo }}"
-    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
   when: not cargo_local_stat.stat.exists
 
 - name: Ensure repo-local cargo bin is executable
@@ -54,7 +54,7 @@
   environment:
     RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
     CARGO_HOME: "{{ dotfiles_cargo }}"
-    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
   when:
     - rustup_stat.stat.exists
     - "'stable' not in (rustup_active.stdout | default(''))"
@@ -64,7 +64,7 @@
   environment:
     RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
     CARGO_HOME: "{{ dotfiles_cargo }}"
-    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
   when:
     - rustup_stat.stat.exists
     - "'stable' not in (rustup_active.stdout | default(''))"
@@ -82,7 +82,7 @@
   environment:
     RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
     CARGO_HOME: "{{ dotfiles_cargo }}"
-    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
   loop: "{{ dotfiles_cargo_crates | default([]) }}"
   loop_control:
     label: "{{ item.name | default(item) }}"
@@ -102,7 +102,7 @@
   environment:
     RUSTUP_HOME: "{{ dotfiles_cargo }}/rustup"
     CARGO_HOME: "{{ dotfiles_cargo }}"
-    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
   loop: "{{ dotfiles_cargo_libraries }}"
   loop_control:
     label: "{{ item.name | default(item) }}"

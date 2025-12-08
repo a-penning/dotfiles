@@ -10,7 +10,7 @@
   tasks:
     - name: Add source line to ~/.zshrc
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.zshrc"
+        path: "{{ ansible_facts['env'].HOME }}/.zshrc"
         line: '[ -f "{{ dotfiles_root }}/run.sh" ] && source "{{ dotfiles_root }}/run.sh"'
         create: yes
         state: present
