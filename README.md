@@ -7,6 +7,8 @@ A portable, ephemeral dotfiles system that activates a curated zsh environment w
 - Sets up a repository-local Python virtualenv and a local Rust toolchain.
 - Generates and sources shell configuration files to provide aliases, functions, plugins and a git-aware prompt.
 - Installs utilities locally so the host system remains untouched.
+- Installs Node.js LTS into a repo-local fnm directory and sets the repository default to the latest LTS (managed via fnm).
+- Ensures npm and npx operations install and execute packages within the repository (repo-local), avoiding global installs on the host system.
 
 ## Requirements
 
@@ -58,7 +60,7 @@ The prompt shows user and path and includes:
 
 ## Utilities installed locally
 
-- Rust/Cargo tools (installed into the repo-local Cargo root and symlinked into `root/bin`): 
+- Rust/Cargo tools (installed into the repo-local Cargo root and symlinked into `root/bin`):
   - rg (ripgrep) — shadows grep for fast, colorized searching
   - exa — replaces ls with a modern, colored listing
   - bat — replaces cat with syntax-highlighted output
@@ -68,6 +70,9 @@ The prompt shows user and path and includes:
   - btm (bottom) — interactive top alternative
   - git-delta — nicer git diffs / pager
   - dust — prettier du summaries
+  - hyperfine — command-line benchmarking tool
+  - doxx — docx CLI utility
+  - fnm — Fast Node Manager (installs Node.js LTS locally)
 
 - Python packages (installed into `root/venv`): tree, tldr, speedtest-cli, thefuck, requests, pytest, pytest-order, pyjwt — provide handy CLI utilities and development tools.
 
