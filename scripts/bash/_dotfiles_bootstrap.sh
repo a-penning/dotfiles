@@ -14,6 +14,9 @@ else
 fi
 export DOTFILES_ROOT
 
+# Ensure top-level scripts and ansible invocations use the repository ansible.cfg
+export ANSIBLE_CONFIG="$DOTFILES_ROOT/ansible/ansible.cfg"
+
 # Marker and env file paths used across scripts
 DOTFILES_MARKER="$DOTFILES_ROOT/root/.dotfiles_setup_complete"
 DOTFILES_ENVFILE="$DOTFILES_ROOT/root/shell/env.zsh"
