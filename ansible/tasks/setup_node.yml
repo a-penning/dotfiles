@@ -1,0 +1,77 @@
+---
+# Install latest LTS of Node.js using fnm
+- name: Stat repo-local fnm binary
+  stat:
+    path: "{{ dotfiles_cargo }}/bin/fnm"
+  register: fnm_stat
+  changed_when: false
+
+- name: Warn if fnm not found (cargo install is expected to provide it)
+  debug:
+    msg: "fnm not found at {{ dotfiles_cargo }}/bin/fnm — ensure 'fnm' is listed in cargo_requirements.yml"
+  when: not fnm_stat.stat.exists
+  changed_when: false
+
+- name: Ensure FNM directory exists
+  file:
+    path: "{{ dotfiles_fnm }}"
+    state: directory
+    mode: '0755'
+
+- name: Get latest Node.js LTS from remote
+  shell: "{{ dotfiles_cargo }}/bin/fnm ls-remote --lts | tail -n1 | awk '{print $1}' | tr -d '\\r\\n'"
+  environment:
+    FNM_DIR: "{{ dotfiles_fnm }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
+  register: fnm_latest
+  when: fnm_stat.stat.exists
+  changed_when: false
+  failed_when: false
+
+- name: Check if latest LTS is already installed
+  shell: |
+    set -o pipefail
+    {{ dotfiles_cargo }}/bin/fnm list || true
+    |
+    cat
+  environment:
+    FNM_DIR: "{{ dotfiles_fnm }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
+  register: fnm_list
+  when: fnm_stat.stat.exists
+  changed_when: false
+  failed_when: false
+
+- name: Install latest Node.js LTS if missing
+  command: "{{ dotfiles_cargo }}/bin/fnm install {{ fnm_latest.stdout | trim }}"
+  environment:
+    FNM_DIR: "{{ dotfiles_fnm }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
+  when:
+    - fnm_stat.stat.exists
+    - fnm_latest.stdout is defined
+    - fnm_latest.stdout | trim != ''
+    - (fnm_latest.stdout | trim) not in (fnm_list.stdout | default(''))
+  register: fnm_install_result
+
+- name: Get current default Node.js version
+  shell: "{{ dotfiles_cargo }}/bin/fnm current || true"
+  environment:
+    FNM_DIR: "{{ dotfiles_fnm }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
+  register: fnm_current
+  when: fnm_stat.stat.exists
+  changed_when: false
+  failed_when: false
+
+- name: Set default Node.js to latest LTS if not already set
+  command: "{{ dotfiles_cargo }}/bin/fnm default {{ fnm_latest.stdout | trim }}"
+  environment:
+    FNM_DIR: "{{ dotfiles_fnm }}"
+    PATH: "{{ dotfiles_cargo }}/bin:{{ ansible_facts['env'].PATH }}"
+  when:
+    - fnm_stat.stat.exists
+    - fnm_latest.stdout is defined
+    - fnm_latest.stdout | trim != ''
+    - (fnm_latest.stdout | trim) not in (fnm_current.stdout | default(''))
+  register: fnm_default_result

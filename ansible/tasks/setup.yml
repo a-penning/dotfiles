@@ -10,5 +10,8 @@
 - name: Prepare Cargo install
   import_tasks: setup_cargo.yml
 
+- name: Install Node.js LTS via fnm
+  import_tasks: setup_node.yml
+
 - name: Generate shell configuration files from templates
   import_tasks: setup_shell.yml

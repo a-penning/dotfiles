@@ -50,6 +50,13 @@ export RUSTUP_HOME="{{ dotfiles_cargo }}/rustup"
 export CARGO_HOME="{{ dotfiles_cargo }}"
 export PATH="$PATH:$CARGO_HOME/bin"
 
+# fnm (Fast Node Manager) environment variables
+export FNM_DIR="{{ dotfiles_fnm }}"
+export npm_config_cache="{{ dotfiles_npm }}"
+if [ -d "${FNM_DIR}/aliases/default/bin" ]; then
+  export PATH="$PATH:${FNM_DIR}/aliases/default/bin"
+fi
+ 
 # Add local scripts to PATH
 if [ -d "{{ dotfiles_root }}/scripts/bash" ]; then
   export PATH="$PATH:{{ dotfiles_root }}/scripts/bash"
