@@ -22,6 +22,8 @@ dotfiles_cargo_crates:
     binary: hyperfine
   - name: doxx
     binary: doxx
+  - name: fnm
+    binary: fnm
 
 # Library-style crates or projects that do not publish binaries to crates.io.
 # These will be handled separately (e.g. installed from a git repo or built differently).
