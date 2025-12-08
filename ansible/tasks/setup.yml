@@ -1,0 +1,14 @@
+---
+# Consolidated setup tasks used by install and run playbooks
+
+- name: Setup environment variables and directories
+  import_tasks: setup_env.yml
+
+- name: Prepare Python virtualenv
+  import_tasks: setup_python.yml
+
+- name: Prepare Cargo install
+  import_tasks: setup_cargo.yml
+
+- name: Generate shell configuration files from templates
+  import_tasks: setup_shell.yml
