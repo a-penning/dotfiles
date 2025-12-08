@@ -172,3 +172,13 @@ screensave() {
   done
 {% endif %}
 }
+
+# Print Public and Internal IP addresses using npx utilities
+if command -v npx &> /dev/null; then
+  ip() {
+    local public_ip=$(npx -y public-ip-cli --ipv4)
+    local private_ip=$(npx -y internal-ip-cli --ipv4)
+    echo "Public IP: $public_ip"
+    echo "Private IP: $private_ip"
+  }
+fi
