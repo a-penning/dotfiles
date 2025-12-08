@@ -63,3 +63,12 @@ alias benchmark-last='hyperfine --warmup 3 --runs 5 "$(fc -ln -1)"'
 {% else %}
 alias benchmark-last='hyperfine --warmup 3 --runs 5 "$(history -p !!)"'
 {% endif %}
+
+# npx aliases
+if command -v npx &> /dev/null; then
+  alias mcp-inspect='npx -y @modelcontextprotocol/inspector'
+  alias fkill='npx -y fkill-cli'
+  alias lighthouse='npx -y lighthouse --no-enable-error-reporting --view'
+  alias ip-public='npx -y public-ip-cli'
+  alias ip-private='npx -y internal-ip-cli'
+fi
