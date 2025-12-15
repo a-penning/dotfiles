@@ -13,5 +13,11 @@
 - name: Install Node.js LTS via fnm
   import_tasks: setup_node.yml
 
+- name: Install fzf fuzzy finder
+  import_tasks: setup_fzf.yml
+
+- name: Install ctop container monitoring tool
+  import_tasks: setup_ctop.yml
+
 - name: Generate shell configuration files from templates
   import_tasks: setup_shell.yml

@@ -1,0 +1,40 @@
+---
+# Setup ctop binary if not present
+
+- name: Check for existing ctop in PATH
+  command: "{{ dotfiles_bin }}/ctop -v"
+  register: ctop_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Get latest ctop release metadata
+  uri:
+    url: "https://api.github.com/repos/bcicen/ctop/releases/latest"
+    return_content: yes
+  changed_when: false
+  register: ctop_release
+
+- name: Calculate ctop current and latest versions
+  set_fact:
+    ctop_current_version: "{{ (ctop_version_check.stdout | default('') | regex_findall('ctop version ([0-9]+\\.[0-9]+\\.[0-9]+)') | first | default('0.0.0')) | string }}"
+    ctop_latest_version: "{{ (ctop_release.json.tag_name | default('0.0.0')) | regex_replace('^v','') | string }}"
+
+- name: Install latest ctop binary
+  when: ctop_current_version is version(ctop_latest_version, '<')
+  block:
+    - name: Determine ctop platform
+      set_fact:
+        ctop_platform: "{{ 'darwin' if ansible_system == 'Darwin' else 'linux' }}"
+
+    - name: Build the list of matching ctop assets
+      set_fact:
+        ctop_matching_assets: "{{ ctop_release.json.assets | selectattr('name', 'match', ctop_regex) | list }}"
+      vars:
+        ctop_regex: "{{ '^ctop-.*-' ~ ctop_platform ~ '-amd64$' }}"
+
+    - name: Download ctop binary to dotfiles bin
+      when: ctop_matching_assets | length > 0
+      get_url:
+        url: "{{ ctop_matching_assets | map(attribute='browser_download_url') | list | first }}"
+        dest: "{{ dotfiles_bin }}/ctop"
+        mode: '0755'
