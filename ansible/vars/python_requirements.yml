@@ -3,7 +3,7 @@
 dotfiles_python_requirements:
   - tldr
   - speedtest-cli
-  - git+https://github.com/nvbn/thefuck.git
+#  - git+https://github.com/nvbn/thefuck.git
   - setuptools
   - requests
   - pytest
