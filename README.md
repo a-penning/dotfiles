@@ -74,7 +74,7 @@ The prompt shows user and path and includes:
   - doxx — docx CLI utility
   - fnm — Fast Node Manager (installs Node.js LTS locally)
 
-- Python packages (installed into `root/venv`): tree, tldr, speedtest-cli, thefuck, requests, pytest, pytest-order, pyjwt — provide handy CLI utilities and development tools.
+- Python packages (installed into `root/venv`): tree, tldr, speedtest-cli, requests, pytest, pytest-order, pyjwt — provide handy CLI utilities and development tools.
 
 - fzf — fuzzy finder used for history and file selection.
 

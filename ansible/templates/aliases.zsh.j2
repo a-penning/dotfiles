@@ -53,9 +53,6 @@ alias crap='eval "sudo $(fc -ln -1)"'
 alias crap='sudo $(history -p !!)'
 {% endif %}
 
-# Thefuck alias
-eval $(thefuck --alias)
-
 # Hyperfine aliases
 alias benchmark='hyperfine --warmup 3 --runs 5'
 {% if ansible_facts['os_family'] == "Darwin" %}
