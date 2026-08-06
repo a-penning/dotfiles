@@ -7,12 +7,15 @@
   changed_when: false
   failed_when: false
 
+# Fetch failure (e.g. GitHub rate limit) is only fatal when tree is missing entirely;
+# with tree present it just skips the update (name defaults latest to 0.0.0 below).
 - name: Get all tree tags
   uri:
     url: "https://api.github.com/repos/Old-Man-Programmer/tree/tags"
     return_content: yes
   changed_when: false
   register: tree_tags
+  failed_when: tree_tags.status != 200 and tree_version_check.rc != 0
 
 - name: Find latest tree tag by commit date
   uri:
@@ -20,7 +23,7 @@
     return_content: yes
   changed_when: false
   register: tree_latest_commit
-  when: tree_tags.json | length > 0
+  when: tree_tags.status == 200 and tree_tags.json | length > 0
 
 - name: Calculate tree current and latest versions
   set_fact:

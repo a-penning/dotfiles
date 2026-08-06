@@ -7,12 +7,15 @@
   changed_when: false
   failed_when: false
 
+# Fetch failure (e.g. GitHub rate limit) is only fatal when ctop is missing entirely;
+# with ctop present it just skips the update (tag_name defaults latest to 0.0.0 below).
 - name: Get latest ctop release metadata
   uri:
     url: "https://api.github.com/repos/bcicen/ctop/releases/latest"
     return_content: yes
   changed_when: false
   register: ctop_release
+  failed_when: ctop_release.status != 200 and ctop_version_check.rc != 0
 
 - name: Calculate ctop current and latest versions
   set_fact:

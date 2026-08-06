@@ -7,12 +7,15 @@
   changed_when: false
   failed_when: false
 
+# Fetch failure (e.g. GitHub rate limit) is only fatal when fzf is missing entirely;
+# with fzf present it just skips the update (tag_name defaults latest to 0.0.0 below).
 - name: Get latest fzf release metadata
   uri:
     url: "https://api.github.com/repos/junegunn/fzf/releases/latest"
     return_content: yes
   changed_when: false
   register: fzf_release
+  failed_when: fzf_release.status != 200 and fzf_version_check.rc != 0
 
 - name: Calculate fzf current and latest versions
   set_fact:
