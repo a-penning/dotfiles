@@ -80,6 +80,18 @@ if [[ ! -d "$VENV_DIR" ]]; then
   python3 -m venv "$VENV_DIR"
 fi
 
+# Recreate the venv when its interpreter no longer matches the system python:
+# an OS upgrade strands site-packages under the old minor version, losing pip.
+if [[ -f "$VENV_DIR/pyvenv.cfg" ]]; then
+  _df_live_ver="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+  _df_venv_ver="$(sed -n 's/^version = \([0-9]*\.[0-9]*\).*/\1/p' "$VENV_DIR/pyvenv.cfg")"
+  if [[ -n "$_df_venv_ver" && "$_df_venv_ver" != "$_df_live_ver" ]]; then
+    echo "⏳ Recreating Python virtual environment (python $_df_venv_ver → $_df_live_ver)..."
+    python3 -m venv --clear "$VENV_DIR"
+  fi
+  unset _df_live_ver _df_venv_ver
+fi
+
 # Prevent venv from modifying our custom prompt
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 
