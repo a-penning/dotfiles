@@ -74,10 +74,11 @@ if ! command -v python3 >/dev/null 2>&1; then
   return 1 2>/dev/null || exit 1
 fi
 
-# Create virtual environment if missing
-if [[ ! -d "$VENV_DIR" ]]; then
+# Create virtual environment if missing or broken (check the interpreter, not the
+# directory — a half-deleted venv leaves lib/ behind with no bin/)
+if [[ ! -x "$VENV_DIR/bin/python" ]]; then
   echo "⏳ Creating Python virtual environment..."
-  python3 -m venv "$VENV_DIR"
+  python3 -m venv --clear "$VENV_DIR"
 fi
 
 # Recreate the venv when its interpreter no longer matches the system python:
@@ -106,7 +107,8 @@ export DOTFILES_VENV="$VENV_DIR"
 python -m pip install --upgrade pip packaging >/dev/null
 
 # Install ansible if not available in venv
+# proxmoxer/requests: required by dynamic-inventory plugins (community.proxmox)
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   echo "⏳ Installing Ansible into virtual environment..."
-  python -m pip install --upgrade ansible >/dev/null
+  python -m pip install --upgrade ansible proxmoxer requests >/dev/null
 fi
