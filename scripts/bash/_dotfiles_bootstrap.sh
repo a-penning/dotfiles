@@ -74,23 +74,31 @@ if ! command -v python3 >/dev/null 2>&1; then
   return 1 2>/dev/null || exit 1
 fi
 
-# Create virtual environment if missing or broken (check the interpreter, not the
-# directory — a half-deleted venv leaves lib/ behind with no bin/)
-if [[ ! -x "$VENV_DIR/bin/python" ]]; then
-  echo "⏳ Creating Python virtual environment..."
-  python3 -m venv --clear "$VENV_DIR"
-fi
+# Interpreter used to (re)create the venv: prefer homebrew's — ambient python3
+# varies during macOS shell startup (PATH may lack homebrew → ancient system 3.9).
+_df_python="/opt/homebrew/bin/python3"
+[[ -x "$_df_python" ]] || _df_python="$(command -v python3)"
 
-# Recreate the venv when its interpreter no longer matches the system python:
-# an OS upgrade strands site-packages under the old minor version, losing pip.
-if [[ -f "$VENV_DIR/pyvenv.cfg" ]]; then
-  _df_live_ver="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
-  _df_venv_ver="$(sed -n 's/^version = \([0-9]*\.[0-9]*\).*/\1/p' "$VENV_DIR/pyvenv.cfg")"
-  if [[ -n "$_df_venv_ver" && "$_df_venv_ver" != "$_df_live_ver" ]]; then
-    echo "⏳ Recreating Python virtual environment (python $_df_venv_ver → $_df_live_ver)..."
-    python3 -m venv --clear "$VENV_DIR"
+# Decide whether the venv needs (re)creating. Judge it ONLY against its own
+# interpreter, never ambient python3: the venv keeps working regardless of PATH.
+_df_recreate=""
+if [[ ! -x "$VENV_DIR/bin/python" ]]; then
+  # Missing or broken symlink (a half-deleted venv leaves lib/ behind with no bin/)
+  _df_recreate="missing interpreter"
+else
+  # An upgraded underlying interpreter strands site-packages under the old
+  # minor version (pyvenv.cfg still records it) — losing pip and ansible.
+  _df_live_ver="$("$VENV_DIR/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || true)"
+  _df_venv_ver="$(sed -n 's/^version = \([0-9]*\.[0-9]*\).*/\1/p' "$VENV_DIR/pyvenv.cfg" 2>/dev/null || true)"
+  if [[ -z "$_df_live_ver" || "$_df_live_ver" != "$_df_venv_ver" ]]; then
+    _df_recreate="python ${_df_venv_ver:-?} → ${_df_live_ver:-broken}"
   fi
   unset _df_live_ver _df_venv_ver
+fi
+
+if [[ -n "$_df_recreate" ]]; then
+  echo "⏳ Recreating Python virtual environment ($_df_recreate)..."
+  "$_df_python" -m venv --clear "$VENV_DIR"
 fi
 
 # Prevent venv from modifying our custom prompt
@@ -104,11 +112,12 @@ source "$VENV_DIR/bin/activate"
 # Always overwrite DOTFILES_VENV so prompt logic consistently recognizes the managed venv.
 export DOTFILES_VENV="$VENV_DIR"
 
-python -m pip install --upgrade pip packaging >/dev/null
-
-# Install ansible if not available in venv
+# Install tooling only on (re)create or when ansible is missing — steady-state
+# shells must do zero pip/network work (this runs on every shell startup).
 # proxmoxer/requests: required by dynamic-inventory plugins (community.proxmox)
-if ! command -v ansible-playbook >/dev/null 2>&1; then
+if [[ -n "$_df_recreate" ]] || ! command -v ansible-playbook >/dev/null 2>&1; then
   echo "⏳ Installing Ansible into virtual environment..."
+  python -m pip install --upgrade pip packaging >/dev/null
   python -m pip install --upgrade ansible proxmoxer requests >/dev/null
 fi
+unset _df_recreate _df_python
